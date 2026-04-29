@@ -37,9 +37,9 @@ function getCurrentStatus() {
   }
 
   if (day === 0) return "Aujourd'hui c'est dimanche, le salon est fermé. Prochain jour d'ouverture : lundi dès 9h.";
-  if (isOpen) return `Le salon est OUVERT en ce moment (aujourd'hui : ${todayHours}). Les clients peuvent venir directement !`;
-  if (time < 8 || (day === 1 && time < 9)) return `Le salon ouvre aujourd'hui à ${day === 1 ? '9h' : '8h'}. Il est encore fermé pour le moment.`;
-  return `Le salon est fermé pour ce soir (horaires aujourd'hui : ${todayHours}). Réouverture ${day === 6 ? 'lundi à 9h' : 'demain à 8h'}.`;
+  if (isOpen) return `Le salon est OUVERT en ce moment (aujourd'hui : ${todayHours}).`;
+  if (time < 8 || (day === 1 && time < 9)) return `Le salon ouvre aujourd'hui à ${day === 1 ? '9h' : '8h'}.`;
+  return `Le salon est fermé pour ce soir (${todayHours}). Réouverture ${day === 6 ? 'lundi à 9h' : 'demain à 8h'}.`;
 }
 
 function buildSystemPrompt() {
@@ -57,7 +57,7 @@ Sois chaleureux, professionnel, élégant. Tu représentes un salon haut de gamm
 
 INFOS GÉNÉRALES :
 - Adresse : ${b.address}
-- Téléphone / WhatsApp : ${b.phone}
+- Téléphone : ${b.phone}
 - Email : ${b.email}
 - Horaires : ${b.horaires}
 - Statut actuel : ${getCurrentStatus()}
@@ -68,18 +68,47 @@ INFOS GÉNÉRALES :
 ÉQUIPE :
 ${equipe}
 
-SERVICES & TARIFS COMPLETS :
+SERVICES & TARIFS :
 ${services}
 
 RÈGLES :
 1. Dès le premier message, demande le prénom du client de façon naturelle.
 2. Utilise son prénom dans chaque réponse suivante.
 3. Réponds précisément aux questions sur horaires, services, tarifs, équipe, histoire, ambiance.
-4. Si on demande les horaires, utilise le statut actuel pour donner une réponse en temps réel.
+4. Si on demande les horaires, utilise le statut actuel pour répondre en temps réel.
 5. Si on demande un service spécifique, donne le prix et la durée exacte.
-6. Pour le lissage brésilien, recommande Vanessa directement.
-7. Détecte l'intention : si le client mentionne un service, propose directement le tarif + le coiffeur expert + le lien RDV.
-8. Propose la prise de RDV après 2 échanges maximum.
-9. Pour RDV, donne ce lien : ${b.rdv_link}
-10. Après avoir donné le lien RDV, ajoute toujours : "Si vous avez d'autres questions avant votre rendez-vous, je suis là 😊"
-11. Pour toute questi
+6. Détecte l'intention : si le client mentionne un service, propose le tarif + coiffeur expert + lien RDV.
+7. Propose la prise de RDV après 2 échanges maximum.
+8. Pour RDV, donne ce lien : ${b.rdv_link}
+9. Après le lien RDV, ajoute : "Si vous avez d'autres questions avant votre rendez-vous, je suis là 😊"
+10. Ne parle jamais d'autre chose que du salon.`;
+}
+
+const sessions = {};
+
+app.post('/chat', async (req, res) => {
+  const { message, sessionId } = req.body;
+  if (!sessions[sessionId]) sessions[sessionId] = [];
+  sessions[sessionId].push({ role: 'user', content: message });
+  const history = sessions[sessionId].slice(-10);
+  try {
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        ...history
+      ],
+      max_tokens: 250,
+      temperature: 0.7
+    });
+    const reply = completion.choices[0].message.content;
+    sessions[sessionId].push({ role: 'assistant', content: reply });
+    res.json({ reply });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ reply: "Désolé, une erreur s'est produite. Appelez-nous directement !" });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Agent RDV lancé sur http://localhost:${PORT}`));
