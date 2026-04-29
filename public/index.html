@@ -1,60 +1,329 @@
-k<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assistant RDV</title>
+  <title>Élite Coiffure — Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Montserrat:wght@200;300;400&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; }
-    .chat-container { width: 380px; height: 600px; background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; overflow: hidden; }
-    .chat-header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 16px 20px; color: white; }
-    .chat-header h3 { font-size: 16px; font-weight: 600; }
-    .status { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-    .dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-    .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-    .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
-    .msg.bot { background: #f0f2f5; color: #1a1a1a; align-self: flex-start; border-bottom-left-radius: 4px; }
-    .msg.user { background: #667eea; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .msg a { color: #667eea; font-weight: 600; text-decoration: none; }
-    .msg.user a { color: white; text-decoration: underline; }
-    .typing { display: flex; gap: 4px; padding: 10px 14px; background: #f0f2f5; border-radius: 12px; border-bottom-left-radius: 4px; align-self: flex-start; }
-    .typing span { width: 8px; height: 8px; background: #999; border-radius: 50%; animation: bounce 1.2s infinite; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: #080808;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .chat-container {
+      width: 420px;
+      height: 680px;
+      background: #0d0d0d;
+      border: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Grain texture */
+    .chat-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .chat-header {
+      background: #080808;
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid #1a1a1a;
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .header-eyebrow {
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: #c9a96e;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-weight: 300;
+    }
+
+    .header-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 300;
+      color: #f0ead6;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+    }
+
+    .header-divider {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+      margin: 10px auto 6px;
+    }
+
+    .header-sub {
+      font-size: 9px;
+      color: #444;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-weight: 300;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      background: #c9a96e;
+      border-radius: 50%;
+      animation: pulse 2.5s infinite;
+    }
+
+    .status-text {
+      font-size: 9px;
+      color: #444;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+      scrollbar-width: thin;
+      scrollbar-color: #1a1a1a #0d0d0d;
+    }
+
+    .messages::-webkit-scrollbar { width: 3px; }
+    .messages::-webkit-scrollbar-track { background: #0d0d0d; }
+    .messages::-webkit-scrollbar-thumb { background: #1a1a1a; }
+
+    .msg {
+      max-width: 85%;
+      font-size: 12.5px;
+      line-height: 1.8;
+      letter-spacing: 0.3px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.bot {
+      color: #bbb;
+      align-self: flex-start;
+      padding: 16px 18px;
+      background: #131313;
+      border-left: 1px solid #c9a96e;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .msg.user {
+      color: #0d0d0d;
+      align-self: flex-end;
+      padding: 14px 18px;
+      background: #c9a96e;
+      font-weight: 300;
+    }
+
+    .msg a {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 11px 24px;
+      background: transparent;
+      border: 1px solid #c9a96e;
+      color: #c9a96e;
+      text-decoration: none;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      transition: all .3s;
+    }
+
+    .msg a:hover {
+      background: #c9a96e;
+      color: #0d0d0d;
+    }
+
+    .typing {
+      display: flex;
+      gap: 5px;
+      padding: 16px 18px;
+      background: #131313;
+      border-left: 1px solid #c9a96e;
+      border-bottom: 1px solid #1a1a1a;
+      align-self: flex-start;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .typing span {
+      width: 4px;
+      height: 4px;
+      background: #c9a96e;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite;
+    }
+
     .typing span:nth-child(2) { animation-delay: .2s; }
     .typing span:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
-    .quick-replies { padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .qr-btn { background: white; border: 1.5px solid #667eea; color: #667eea; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all .2s; }
-    .qr-btn:hover { background: #667eea; color: white; }
-    .input-area { padding: 12px 16px; border-top: 1px solid #f0f2f5; display: flex; gap: 8px; }
-    #userInput { flex: 1; border: 1.5px solid #e0e0e0; border-radius: 24px; padding: 10px 16px; font-size: 14px; outline: none; transition: border .2s; }
-    #userInput:focus { border-color: #667eea; }
-    #sendBtn { background: #667eea; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: transform .1s; }
-    #sendBtn:hover { transform: scale(1.05); }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+    .quick-replies {
+      padding: 0 24px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .qr-btn {
+      background: transparent;
+      border: 1px solid #222;
+      color: #555;
+      padding: 7px 14px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .25s;
+      font-weight: 300;
+    }
+
+    .qr-btn:hover { border-color: #c9a96e; color: #c9a96e; }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-self: flex-start;
+      max-width: 92%;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .sug-btn {
+      background: transparent;
+      border: 1px solid #222;
+      color: #666;
+      padding: 6px 12px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .25s;
+      font-weight: 300;
+    }
+
+    .sug-btn:hover { border-color: #c9a96e; color: #c9a96e; }
+
+    .input-area {
+      padding: 16px 24px;
+      border-top: 1px solid #1a1a1a;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: #080808;
+      position: relative;
+      z-index: 1;
+    }
+
+    #userInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #222;
+      color: #ccc;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      padding: 10px 0;
+      outline: none;
+      letter-spacing: 0.5px;
+      font-weight: 300;
+      transition: border .3s;
+    }
+
+    #userInput::placeholder { color: #333; letter-spacing: 1px; }
+    #userInput:focus { border-bottom-color: #c9a96e; }
+
+    #sendBtn {
+      background: transparent;
+      border: 1px solid #222;
+      color: #c9a96e;
+      width: 38px;
+      height: 38px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .25s;
+      flex-shrink: 0;
+      font-family: 'Cormorant Garamond', serif;
+    }
+
+    #sendBtn:hover { background: #c9a96e; color: #080808; border-color: #c9a96e; }
   </style>
 </head>
 <body>
 <div class="chat-container">
   <div class="chat-header">
-    <h3>💬 Assistant Virtuel</h3>
-    <div class="status"><div class="dot"></div><p>En ligne • Répond instantanément</p></div>
+    <div class="header-eyebrow">Assistant Personnel</div>
+    <div class="header-logo">Élite</div>
+    <div class="header-divider"></div>
+    <div class="header-sub">Salon de Coiffure · Paris</div>
+    <div class="status-row">
+      <div class="dot"></div>
+      <span class="status-text">Disponible</span>
+    </div>
   </div>
+
   <div class="messages" id="messages"></div>
+
   <div class="quick-replies" id="quickReplies">
-    <button class="qr-btn" onclick="sendQuick('Quels sont vos horaires ?')">🕐 Horaires</button>
-    <button class="qr-btn" onclick="sendQuick('Quels sont vos services ?')">✂️ Services</button>
-    <button class="qr-btn" onclick="sendQuick('Je veux prendre rendez-vous')">📅 RDV</button>
+    <button class="qr-btn" onclick="sendQuick('Quels sont vos horaires ?')">Horaires</button>
+    <button class="qr-btn" onclick="sendQuick('Quels sont vos services ?')">Services</button>
+    <button class="qr-btn" onclick="sendQuick('Je veux prendre rendez-vous')">Réserver</button>
   </div>
+
   <div class="input-area">
-    <input id="userInput" type="text" placeholder="Écrivez votre message..." />
-    <button id="sendBtn" onclick="sendMessage()">➤</button>
+    <input id="userInput" type="text" placeholder="Votre message..." />
+    <button id="sendBtn" onclick="sendMessage()">→</button>
   </div>
 </div>
+
 <script>
   const API_URL = window.location.origin;
   const SESSION_ID = 'session_' + Math.random().toString(36).substr(2, 9);
-  const WELCOME = "Bonjour ! Je suis l'assistant du Salon Élégance 💇‍♀️ Comment puis-je vous aider ?";
+  const WELCOME = "Bonjour et bienvenue chez Élite Coiffure ✦ Comment puis-je vous aider aujourd'hui ?";
 
   window.onload = () => {
     addMessage(WELCOME, 'bot');
@@ -64,7 +333,27 @@ k<!DOCTYPE html>
   };
 
   function linkify(text) {
-    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">👉 Prendre RDV ici</a>');
+    return text.replace(/(https?:\/\/[^\s]+)/g,
+      '<a href="$1" target="_blank">→ Réserver en ligne</a>'
+    );
+  }
+
+  function getSuggestions(text) {
+    const t = text.toLowerCase();
+    if (t.includes('prénom') || t.includes('appelle') || t.includes('nom')) return [];
+    if (t.includes('service') || t.includes('prestation') || t.includes('intéresse')) {
+      return ['Coupe femme', 'Coupe homme', 'Balayage', 'Coloration', 'Lissage'];
+    }
+    if (t.includes('rdv') || t.includes('rendez-vous') || t.includes('réserver')) {
+      return ['Voir les horaires', 'Autre question'];
+    }
+    if (t.includes('horaire') || t.includes('ouvert')) {
+      return ['Voir les services', 'Prendre rendez-vous'];
+    }
+    if (t.includes('prix') || t.includes('tarif') || t.includes('€')) {
+      return ['Prendre rendez-vous', 'Autres services'];
+    }
+    return ['Prendre rendez-vous', 'Voir les services'];
   }
 
   function addMessage(text, type) {
@@ -73,6 +362,25 @@ k<!DOCTYPE html>
     div.className = `msg ${type}`;
     div.innerHTML = linkify(text);
     msgs.appendChild(div);
+    if (type === 'bot') {
+      const suggestions = getSuggestions(text);
+      if (suggestions.length > 0) {
+        const sugDiv = document.createElement('div');
+        sugDiv.className = 'suggestions';
+        suggestions.forEach(s => {
+          const btn = document.createElement('button');
+          btn.className = 'sug-btn';
+          btn.textContent = s;
+          btn.onclick = () => {
+            document.querySelectorAll('.suggestions').forEach(el => el.remove());
+            document.getElementById('userInput').value = s;
+            sendMessage();
+          };
+          sugDiv.appendChild(btn);
+        });
+        msgs.appendChild(sugDiv);
+      }
+    }
     msgs.scrollTop = msgs.scrollHeight;
   }
 
@@ -109,7 +417,7 @@ k<!DOCTYPE html>
       addMessage(data.reply, 'bot');
     } catch {
       hideTyping();
-      addMessage("Désolé, problème de connexion. Réessayez !", 'bot');
+      addMessage("Désolé, problème de connexion. Appelez-nous directement.", 'bot');
     }
   }
 
